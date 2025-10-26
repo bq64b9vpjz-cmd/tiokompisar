@@ -135,6 +135,18 @@
     /* ---------- SPELVY ---------- */
   #girlGame, #girlGameFalse, #girlGameGood, #girlGameCelebrate {width:min(250px,50%);margin-top:10px;display:none;}
     #title {font-size:clamp(2.4rem,4vw,2rem);margin:20px 0;display:none;}
+    /* Small pill showing active mode / table during gameplay */
+    #modeIndicator {
+      display:none;
+      font-size:0.95rem;
+      color:rgba(255,255,255,0.95);
+      background: rgba(255,255,255,0.06);
+      padding:6px 10px;
+      border-radius:12px;
+      margin: -6px auto 10px auto;
+      width: fit-content;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
     #question {font-size:clamp(2.1rem,3vw,1.8rem);margin:20px 10px;min-height:2.2em;}
 
     .buttons {
@@ -212,11 +224,34 @@
     <div class="star star3">⭐</div>
     <div class="star star4">⭐</div>
 
-    <h1 class="arcTitle">Tiokompisar</h1>
+    <h1 class="arcTitle">MatteTilda</h1>
 
     <img id="introGirl" src="Ui_girl_transparent.png" alt="Flickan">
+    <!-- Mode selector: Tiokompisar (sum to 10) or Multiplikation -->
+    <div style="margin-top:12px;">
+      <label style="font-weight:bold;display:block;margin-bottom:6px">Välj läge</label>
+      <select id="modeSelect" aria-label="Välj spelläge" style="padding:8px;border-radius:8px;font-weight:bold;">
+        <option value="tiokompisar">Tiokompisar (addera till 10)</option>
+        <option value="multiplication">Multiplikationstabeller</option>
+      </select>
+      <div id="tableChooser" style="margin-top:8px;display:none;">
+        <label for="tableSelect" style="display:block;margin-top:6px">Välj tabell (eller slumpmässig)</label>
+        <select id="tableSelect" style="padding:6px;border-radius:6px;">
+          <option value="random">Slumpmässig tabell</option>
+          <option value="2">2:ans tabell</option>
+          <option value="3">3:ans tabell</option>
+          <option value="4">4:ans tabell</option>
+          <option value="5">5:ans tabell</option>
+          <option value="6">6:ans tabell</option>
+          <option value="7">7:ans tabell</option>
+          <option value="8">8:ans tabell</option>
+          <option value="9">9:ans tabell</option>
+          <option value="10">10:ans tabell</option>
+        </select>
+      </div>
+    </div>
     <div id="description">
-      Hon älskar att räkna och vill hjälpa dig att hitta alla tiokompisar.  
+      Hon älskar att räkna och vill hjälpa dig att hitta de rätta svaren.  
       När du lyckas blir hon superglad och hejar på dig!
     </div>
     <button id="startButton">Spela nu</button>
@@ -230,7 +265,9 @@
   <img id="girlGameGood" src="Ui_girl_good.png" alt="" aria-hidden="true">
   <!-- Bild som visas när spelet är avslutat (celebrate) -->
   <img id="girlGameCelebrate" src="Ui_girl_celebrate.png" alt="" aria-hidden="true">
-  <h1 id="title">Tiokompisar 💛</h1>
+  <h1 id="title">MatteTilda 💛</h1>
+
+  <div id="modeIndicator" aria-live="polite" style="display:none"></div>
 
   <div id="question"></div>
   <div class="buttons" id="buttons"></div>
@@ -261,12 +298,16 @@
 
   const startScreen = document.getElementById("startScreen");
   const startButton = document.getElementById("startButton");
+  const modeSelect = document.getElementById('modeSelect');
+  const tableSelect = document.getElementById('tableSelect');
+  const tableChooser = document.getElementById('tableChooser');
   const soundMagic = document.getElementById("soundMagic");
   const girlGame = document.getElementById("girlGame");
   const girlGameFalse = document.getElementById("girlGameFalse");
   const girlGameGood = document.getElementById("girlGameGood");
   const girlGameCelebrate = document.getElementById("girlGameCelebrate");
     const titleEl = document.getElementById("title");
+      const modeIndicator = document.getElementById('modeIndicator');
     const questionEl = document.getElementById("question");
     const buttonsEl = document.getElementById("buttons");
     const feedbackEl = document.getElementById("feedback");
@@ -275,6 +316,10 @@
     const soundCorrect = document.getElementById("soundCorrect");
     const soundWrong = document.getElementById("soundWrong");
     const soundApplause = document.getElementById("soundApplause");
+
+  // current mode: "tiokompisar" (default) or "multiplication"
+  let currentMode = 'tiokompisar';
+  let currentTable = 'random';
 
     // Default volumes
     soundCorrect.volume = 0.5;
@@ -405,6 +450,39 @@
       }
     }
 
+    // Toggle table chooser visibility when mode changes
+    if (modeSelect) {
+      modeSelect.addEventListener('change', (e) => {
+        currentMode = modeSelect.value || 'tiokompisar';
+        if (currentMode === 'multiplication') {
+          tableChooser.style.display = 'block';
+        } else {
+          tableChooser.style.display = 'none';
+        }
+        // update indicator if visible
+        try { updateModeIndicator(); } catch(e){}
+      });
+    }
+    if (tableSelect) {
+      tableSelect.addEventListener('change', (e) => { currentTable = tableSelect.value || 'random'; });
+    }
+
+    // update indicator when table selection changes
+    if (tableSelect) tableSelect.addEventListener('change', ()=>{ try { updateModeIndicator(); } catch(e){} });
+
+    function updateModeIndicator(){
+      if(!modeIndicator) return;
+      if(currentMode === 'multiplication'){
+        if(currentTable && currentTable !== 'random'){
+          modeIndicator.textContent = `Läge: Multiplikation — Övar ${currentTable}:ans tabell`;
+        } else {
+          modeIndicator.textContent = 'Läge: Multiplikation — Slumpmässig tabell';
+        }
+      } else {
+        modeIndicator.textContent = 'Läge: Tiokompisar';
+      }
+    }
+
     function newQuestion() {
       accepting = true;
       // återställ flickans bild när en ny fråga visas
@@ -412,6 +490,35 @@
       feedbackEl.textContent = "";
       updateCounter();
 
+      // Create question depending on mode
+      if (currentMode === 'multiplication') {
+        // choose multiplier and multiplicand
+        let a, b;
+        if (currentTable && currentTable !== 'random') {
+          // tableSelect contains numbers as strings
+          a = parseInt(currentTable, 10);
+          b = Math.floor(Math.random()*10)+1; // 1..10
+        } else {
+          a = Math.floor(Math.random()*10)+1; // 1..10
+          b = Math.floor(Math.random()*10)+1; // 1..10
+        }
+        const correct = a * b;
+        questionEl.textContent = `Vad är ${a} × ${b} ?`;
+        const options = generateOptionsMultiplication(correct);
+
+        buttonsEl.innerHTML = "";
+        options.forEach(opt => {
+          const btn = document.createElement("button");
+          btn.textContent = opt;
+          btn.className = "answer";
+          btn.setAttribute("aria-label", `Svar ${opt}`);
+          btn.addEventListener("click", () => handleAnswer(btn, opt, correct));
+          buttonsEl.appendChild(btn);
+        });
+        return;
+      }
+
+      // default: tiokompisar
       const num = Math.floor(Math.random()*9)+1;
       questionEl.textContent = `Vilken är tiokompisen till ${num}?`;
 
@@ -438,6 +545,32 @@
       return Array.from(set).sort(()=>Math.random()-0.5);
     }
 
+    function generateOptionsMultiplication(correct) {
+      // generate 3 plausible wrong answers plus the correct one
+      const set = new Set([correct]);
+      // create distractors by +/- small offsets and by nearby products
+      const maxAttempts = 60;
+      let attempts = 0;
+      while(set.size < 4 && attempts < maxAttempts) {
+        attempts++;
+        // either create offset or random product
+        const r = Math.random();
+        let cand;
+        if (r < 0.5) {
+          // offset by small delta
+          const delta = Math.floor(Math.random()*6)-3; // -3..+2
+          cand = correct + delta;
+        } else {
+          // random nearby product in 1..100
+          cand = Math.floor(Math.random()*10 + 1) * Math.floor(Math.random()*10 + 1);
+        }
+        if (cand > 0 && cand !== correct) set.add(cand);
+      }
+      // if still not enough, add random numbers
+      while(set.size < 4) set.add(Math.floor(Math.random()*100)+1);
+      return Array.from(set).sort(()=>Math.random()-0.5);
+    }
+
     function handleAnswer(btn, answer, correct) {
       if(!accepting) return;
       accepting = false;
@@ -446,18 +579,19 @@
       if(answer===correct){
         btn.classList.add("correct");
         feedbackEl.textContent = `✅ Rätt! ${answer} + ${10-answer} = 10 🎉`;
-        feedbackEl.style.color="lime";
-        playSound(soundCorrect);
-        score++;
-        // Om detta var den sista poängen: visa celebrate-bild och firande
-        if(score>=maxPoang){
-          showCelebrateGirl();
-          celebrate();
-        } else {
-          // visa en 'good' bild kort innan nästa fråga
-          showGoodGirl();
-          setTimeout(newQuestion, tidForNastaFraga);
-        }
+          feedbackEl.style.color="lime";
+          // r e4kna upp po e4ng f f6rst
+          score++;
+          // Om detta var den sista po e4ngen: spela ENDAST celebrate-ljudet (via celebrate)
+          if(score>=maxPoang){
+            showCelebrateGirl();
+            celebrate();
+          } else {
+            // spela korrekt-ljud och visa 'good' bild kort innan n e4sta fr e5ga
+            playSound(soundCorrect);
+            showGoodGirl();
+            setTimeout(newQuestion, tidForNastaFraga);
+          }
       } else {
         btn.classList.add("wrong");
         feedbackEl.textContent="❌ Försök igen!";
@@ -512,6 +646,7 @@
         try { girlGameCelebrate.classList.remove('celebrate-visible'); } catch(e){}
         girlGameCelebrate.style.display = 'none';
         titleEl.style.display="none";
+        try { if(modeIndicator) modeIndicator.style.display='none'; } catch(e){}
         feedbackEl.textContent="";
       }
 
@@ -543,6 +678,7 @@
         showNormalGirl();
         girlGame.style.display="block";
         titleEl.style.display="block";
+        try { modeIndicator.style.display = 'block'; updateModeIndicator(); } catch(e){}
         score=0;
         newQuestion();
       }
@@ -566,6 +702,7 @@
 
     girlGame.style.display="none";
     titleEl.style.display="none";
+    try { if(modeIndicator) modeIndicator.style.display='none'; } catch(e){}
   </script>
 </body>
 </html>
